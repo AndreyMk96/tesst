@@ -1,16 +1,19 @@
-import datetime
 import mysql.connector
+import datetime
+mydb = mysql.connector.connect(
+    host = "localhost", user = "Andrey", password = "12345678",database = "workbase"
+)
 
-cnx = mysql.connector.connect(user='Andrey', password = '12345678', database='sakila')
-cursor = cnx.cursor()
+cursor = mydb.cursor()
+#cursor.execute("CREATE DATABASE workbase")
+"""cursor.execute("SHOW DATABASES")
+for db in cursor:
+    print(db)"""
+#cursor.execute("CREATE TABLE my_table (name VARCHAR(255))")
+temp = "test data"
+#cursor.execute("INSERT INTO other_info(data) VALUES '%s'", temp)
+cursor.execute("""INSERT INTO other_info(data, other_info)
+                     VALUES ('%s','%s')
+                     """ % (temp, str(datetime.datetime.now())))
 
-query = ("SELECT first_name, last_name FROM actor ")
-        # "WHERE actor_id BETWEEN 10 AND 20")
-
-
-cursor.execute(query)#, (hire_start, hire_end))
-for (first_name, last_name) in cursor:
-  print(last_name, first_name)
-
-#cursor.close()
-#cnx.close()
+mydb.commit()
