@@ -24,13 +24,12 @@ class HttpGetHandler(BaseHTTPRequestHandler):
                 self.wfile.write((k + ' ' + str(v) + '\n').encode())
         elif par == 2:
             r = redis.StrictRedis(
-                host="redis-15543.c279.us-central1-1.gce.cloud.redislabs.com",  #:15543",
-                port=15543,  # из Endpoint
-                password='59XKlVEiX7BapxV8TOFwCu6hhIiQHe3p'  # ваш пароль
+                host="redis-15543.c279.us-central1-1.gce.cloud.redislabs.com",
+                port=15543,
+                password='59XKlVEiX7BapxV8TOFwCu6hhIiQHe3p'
             )
             for k in r.keys():
                 self.wfile.write(k +  ' '.encode() + r.get(k) + '\n'.encode())
-                #print(k.decode('utf-8'), r.get(k).decode('utf-8'))
         else:
             self.wfile.write('Передан неизвестный параметр'.encode())
 
@@ -60,9 +59,9 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         #Если передан параметр 2, то заносим данные в redis
         elif par == 2:
             r = redis.StrictRedis(
-                host="redis-15543.c279.us-central1-1.gce.cloud.redislabs.com",  #:15543",
-                port=15543,  # из Endpoint
-                password='59XKlVEiX7BapxV8TOFwCu6hhIiQHe3p'  # ваш пароль
+                host="redis-15543.c279.us-central1-1.gce.cloud.redislabs.com",
+                port=15543,
+                password='59XKlVEiX7BapxV8TOFwCu6hhIiQHe3p'
             )
             r.set(post_data.decode("utf-8"),str(datetime.datetime.now()))
             self.wfile.write('Данные занесены в redis'.encode())
