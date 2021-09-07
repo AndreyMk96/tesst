@@ -1,11 +1,11 @@
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
-import mysql.connector
 import datetime
 from urllib.parse import urlparse
 import redis
+import temp
 import json
-
+import mysql.connector
 
 
 class HttpGetHandler(BaseHTTPRequestHandler):
@@ -16,6 +16,7 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         result = urlparse(self.path)
         par = int(result.query)
         self.end_headers()
+
         if par == 1:
             mydb = mysql.connector.connect(
                 host="localhost", user="Andrey", password="12345678", database="workbase"
@@ -24,24 +25,23 @@ class HttpGetHandler(BaseHTTPRequestHandler):
             cursor.execute("SELECT * FROM other_info")
             for k,v in cursor.fetchall():
                 self.wfile.write((k + ' ' + str(v) + '\n').encode())
+
         elif par == 2:
-            r = redis.StrictRedis(
-                host="redis-15543.c279.us-central1-1.gce.cloud.redislabs.com",
-                port=15543,
-                password='59XKlVEiX7BapxV8TOFwCu6hhIiQHe3p'
-            )
+            r = temp.open_redis()
             for k in r.keys():
                 self.wfile.write(k +  ' '.encode() + r.get(k) + '\n'.encode())
+
         elif par == 3:
             with open('data.json') as f:
                 templates = json.load(f)
                 self.wfile.write(json.dumps(templates).encode('utf-8'))
+
         else:
             self.wfile.write('Передан неизвестный параметр'.encode())
 
     def do_POST(self):
+
         self.send_response(200)
-        resp = 200
         self.send_header("Content-type", "text/html")
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
@@ -51,44 +51,27 @@ class HttpGetHandler(BaseHTTPRequestHandler):
 
         #если передан параметр 1, то заносим данные в бд
         if par == 1:
-            mydb = mysql.connector.connect(
-                host="localhost", user="Andrey", password="12345678", database="workbase"
-            )
-            cursor = mydb.cursor()
-
+            cursor = temp.open_sql()
             cursor.execute("""INSERT INTO other_info(data, other_info)
                                  VALUES ('%s', '%s')
                                  """ % (post_data.decode("utf-8"),datetime.datetime.now()))
 
-            mydb.commit()
-            with open('data.json') as f:
-                templates = json.load(f)
-            f.close()
-            templates[post_data.decode("utf-8")] = resp
-            with open('data.json', 'w') as f:
-                json.dump(templates, f)
-            f.close()
+            cursor.commit()
+            temp.load_json(post_data.decode("utf-8"), "POST", 200)
             self.wfile.write('Данные записаны в MySQL'.encode())
 
         #Если передан параметр 2, то заносим данные в redis
         elif par == 2:
-            r = redis.StrictRedis(
-                host="redis-15543.c279.us-central1-1.gce.cloud.redislabs.com",
-                port=15543,
-                password='59XKlVEiX7BapxV8TOFwCu6hhIiQHe3p'
-            )
+            r = temp.open_redis()
             r.set(post_data.decode("utf-8"),str(datetime.datetime.now()))
-            with open('data.json') as f:
-                templates = json.load(f)
-            f.close()
-            templates[post_data.decode("utf-8")] = resp
-            with open('data.json', 'w') as f:
-                json.dump(templates, f)
-            f.close()
+            temp.load_json(post_data.decode("utf-8"), "POST", 200)
             self.wfile.write('Данные занесены в redis'.encode())
-        else:
-            self.wfile.write('Передан неизвестный параметр'.encode())
 
+        #во всех остальных случаях сообщаем пользователю что передан неверный параметр
+        else:
+            self.send_response(400)
+            temp.load_json(post_data.decode("utf-8"), "POST", 400)
+            self.wfile.write('Передан неизвестный параметр'.encode())
 
 
 def run(server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
