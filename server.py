@@ -4,6 +4,8 @@ import mysql.connector
 import datetime
 from urllib.parse import urlparse
 import redis
+import json
+
 
 
 class HttpGetHandler(BaseHTTPRequestHandler):
@@ -30,11 +32,16 @@ class HttpGetHandler(BaseHTTPRequestHandler):
             )
             for k in r.keys():
                 self.wfile.write(k +  ' '.encode() + r.get(k) + '\n'.encode())
+        elif par == 3:
+            with open('data.json') as f:
+                templates = json.load(f)
+                self.wfile.write(json.dumps(templates).encode('utf-8'))
         else:
             self.wfile.write('Передан неизвестный параметр'.encode())
 
     def do_POST(self):
         self.send_response(200)
+        resp = 200
         self.send_header("Content-type", "text/html")
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
@@ -54,6 +61,13 @@ class HttpGetHandler(BaseHTTPRequestHandler):
                                  """ % (post_data.decode("utf-8"),datetime.datetime.now()))
 
             mydb.commit()
+            with open('data.json') as f:
+                templates = json.load(f)
+            f.close()
+            templates[post_data.decode("utf-8")] = resp
+            with open('data.json', 'w') as f:
+                json.dump(templates, f)
+            f.close()
             self.wfile.write('Данные записаны в MySQL'.encode())
 
         #Если передан параметр 2, то заносим данные в redis
@@ -64,9 +78,18 @@ class HttpGetHandler(BaseHTTPRequestHandler):
                 password='59XKlVEiX7BapxV8TOFwCu6hhIiQHe3p'
             )
             r.set(post_data.decode("utf-8"),str(datetime.datetime.now()))
+            with open('data.json') as f:
+                templates = json.load(f)
+            f.close()
+            templates[post_data.decode("utf-8")] = resp
+            with open('data.json', 'w') as f:
+                json.dump(templates, f)
+            f.close()
             self.wfile.write('Данные занесены в redis'.encode())
         else:
             self.wfile.write('Передан неизвестный параметр'.encode())
+
+
 
 def run(server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
   server_address = ('127.0.0.1', 8000)
@@ -75,4 +98,6 @@ def run(server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
       httpd.serve_forever()
   except KeyboardInterrupt:
       httpd.server_close()
+
 run(handler_class=HttpGetHandler)
+
