@@ -7,15 +7,19 @@ import json
 import mysql.connector
 
 class HttpGetHandler(BaseHTTPRequestHandler):
+    """Класс используется для обработки HTTP-запросов, поступающих на сервер."""
 
+    #функция для обработки GET-Запросов
     def do_GET(self):
+
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         result = urlparse(self.path)
         par = int(result.query)
         self.end_headers()
 
-
+        #Если передан параметр 1, происходит подключение к БД MySQL, и отправка
+        #данных из БД
         if par == 1:
             mydb = mysql.connector.connect(
                 host="localhost", user="Andrey", password="12345678", database="workbase"
@@ -25,19 +29,25 @@ class HttpGetHandler(BaseHTTPRequestHandler):
             for k,v in cursor.fetchall():
                 self.wfile.write((k + ' ' + str(v) + '\n').encode())
 
+        # Если передан параметр 2, происходит подключение к БД Redis, и отправка
+        # данных из БД
         elif par == 2:
             r = temp.open_redis()
             for k in r.keys():
                 self.wfile.write(k +  ' '.encode() + r.get(k) + '\n'.encode())
 
+        # Если передан параметр 3, отправка данных из data.json
         elif par == 3:
             with open('data.json') as f:
                 templates = json.load(f)
                 self.wfile.write(json.dumps(templates).encode('utf-8'))
 
+        # во всех остальных случаях сообщаем пользователю что передан неверный параметр
         else:
             self.wfile.write('Передан неизвестный параметр'.encode())
 
+
+    #Функция для обработки POST - Запросов
     def do_POST(self):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
@@ -47,7 +57,8 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         par = int(result.query)
         self.end_headers()
 
-        #если передан параметр 1, то заносим данные в бд
+        # Если передан параметр 1, происходит подключение к БД MySQL, и запись
+        # данных в БД
         if par == 1:
             mydb = mysql.connector.connect(
                 host="localhost", user="Andrey", password="12345678", database="workbase"
@@ -61,7 +72,8 @@ class HttpGetHandler(BaseHTTPRequestHandler):
             temp.load_json(post_data.decode("utf-8"), "POST", 200)
             self.wfile.write('Данные записаны в MySQL'.encode())
 
-        #Если передан параметр 2, то заносим данные в redis
+        # Если передан параметр 2, происходит подключение к БД Redis, и запись
+        # данных в БД
         elif par == 2:
             r = temp.open_redis()
             r.set(post_data.decode("utf-8"),str(datetime.datetime.now()))

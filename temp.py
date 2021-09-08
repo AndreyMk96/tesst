@@ -3,6 +3,9 @@ import mysql.connector
 import redis
 import os
 
+#функция записи в json файл
+#происходит запись трех параметров:
+#данные, тип запроса, ответ сервера
 def load_json(data, type, resp):
     try:
         with open('data.json') as f:
@@ -22,14 +25,7 @@ def load_json(data, type, resp):
     f.close()
 
 
-def open_sql():
-    mydb = mysql.connector.connect(
-        host="localhost", user="Andrey", password="12345678", database="workbase"
-    )
-    c = mydb.cursor()
-    return c
-
-
+#функция подключения к бд Redis
 def open_redis():
     r = redis.StrictRedis(
         host="redis-15543.c279.us-central1-1.gce.cloud.redislabs.com",
@@ -38,6 +34,7 @@ def open_redis():
     )
     return r
 
+#функция очистки json - файла
 def clear_json():
     if os.path.exists("data.json"):
         os.remove("data.json")
