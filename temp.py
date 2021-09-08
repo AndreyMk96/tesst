@@ -1,6 +1,7 @@
 import json
 import mysql.connector
 import redis
+import os
 
 def load_json(data, type, resp):
     try:
@@ -25,7 +26,8 @@ def open_sql():
     mydb = mysql.connector.connect(
         host="localhost", user="Andrey", password="12345678", database="workbase"
     )
-    return mydb
+    c = mydb.cursor()
+    return c
 
 
 def open_redis():
@@ -35,3 +37,8 @@ def open_redis():
         password='59XKlVEiX7BapxV8TOFwCu6hhIiQHe3p'
     )
     return r
+
+def clear_json():
+    if os.path.exists("data.json"):
+        os.remove("data.json")
+    open("data.json", 'w')

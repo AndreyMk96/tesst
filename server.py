@@ -2,11 +2,9 @@ from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 import datetime
 from urllib.parse import urlparse
-import redis
 import temp
 import json
 import mysql.connector
-
 
 class HttpGetHandler(BaseHTTPRequestHandler):
 
@@ -17,12 +15,13 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         par = int(result.query)
         self.end_headers()
 
+
         if par == 1:
             mydb = mysql.connector.connect(
                 host="localhost", user="Andrey", password="12345678", database="workbase"
             )
             cursor = mydb.cursor()
-            cursor.execute("SELECT * FROM other_info")
+            cursor.execute("SELECT * FROM new_table")
             for k,v in cursor.fetchall():
                 self.wfile.write((k + ' ' + str(v) + '\n').encode())
 
@@ -40,7 +39,6 @@ class HttpGetHandler(BaseHTTPRequestHandler):
             self.wfile.write('Передан неизвестный параметр'.encode())
 
     def do_POST(self):
-
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         content_length = int(self.headers['Content-Length'])
@@ -51,12 +49,15 @@ class HttpGetHandler(BaseHTTPRequestHandler):
 
         #если передан параметр 1, то заносим данные в бд
         if par == 1:
-            cursor = temp.open_sql()
-            cursor.execute("""INSERT INTO other_info(data, other_info)
+            mydb = mysql.connector.connect(
+                host="localhost", user="Andrey", password="12345678", database="workbase"
+            )
+            cursor = mydb.cursor()
+            cursor.execute("""INSERT INTO new_table(data, other_info)
                                  VALUES ('%s', '%s')
                                  """ % (post_data.decode("utf-8"),datetime.datetime.now()))
 
-            cursor.commit()
+            mydb.commit()
             temp.load_json(post_data.decode("utf-8"), "POST", 200)
             self.wfile.write('Данные записаны в MySQL'.encode())
 
@@ -78,6 +79,7 @@ def run(server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
   server_address = ('127.0.0.1', 8000)
   httpd = server_class(server_address, handler_class)
   try:
+      temp.clear_json()
       httpd.serve_forever()
   except KeyboardInterrupt:
       httpd.server_close()
